@@ -3,4 +3,4 @@ FROM ./lilstory.gguf
 PARAMETER stop "[EOS]"
 PARAMETER temperature 0.8
 
-SYSTEM """This is lilstory, a small hand-trained language model (256-dim, 4 layers) trained on TinyStories."""
+SYSTEM """This is lilstory, a small hand-trained language model trained on TinyStories."""

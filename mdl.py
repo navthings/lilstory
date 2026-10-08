@@ -21,7 +21,7 @@ print("using:", device)
 
 steps = int(input("steps: "))
 
-block_size = 512
+block_size = 384
 batch_size = 32
 
 
@@ -29,7 +29,7 @@ batch_size = 32
 
 dataset = load_dataset(
     "roneneldan/TinyStories",
-    split="train[:20%]"
+    split="train[:10%]"
 )
 
 print(dataset)
@@ -47,8 +47,10 @@ tokenizer = PreTrainedTokenizerFast(
 
 vocab_size = tokenizer.vocab_size
 
+
 def encode(s):
     return tokenizer.encode(s)
+
 
 def decode(ids):
     return tokenizer.decode(ids)
@@ -67,14 +69,15 @@ print("tokens:", len(data))
 print("vocab:", vocab_size)
 
 
-# split
+# train / validation split
 
 split = int(len(data) * 0.9)
 
 train_data = data[:split]
+val_data = data[split:]
 
 
-# batches
+# training batches
 
 def get_batch():
 
@@ -91,6 +94,29 @@ def get_batch():
     ]
 
     y = train_data[
+        starts[:, None] + offsets + 1
+    ]
+
+    return x.to(device), y.to(device)
+
+
+# validation batches
+
+def get_val_batch():
+
+    starts = torch.randint(
+        0,
+        len(val_data) - block_size - 1,
+        (batch_size,)
+    )
+
+    offsets = torch.arange(block_size)
+
+    x = val_data[
+        starts[:, None] + offsets
+    ]
+
+    y = val_data[
         starts[:, None] + offsets + 1
     ]
 
@@ -120,12 +146,36 @@ print(
 )
 
 
-# train
+# optimizer
 
 optimizer = torch.optim.AdamW(
     model.parameters(),
     lr=0.001
 )
+
+
+# validation loss
+
+@torch.no_grad()
+def validation_loss():
+
+    model.eval()
+
+    x, y = get_val_batch()
+
+    logits = model(x).logits
+
+    loss = F.cross_entropy(
+        logits.reshape(-1, vocab_size),
+        y.reshape(-1)
+    )
+
+    model.train()
+
+    return loss.item()
+
+
+# train
 
 model.train()
 
@@ -146,14 +196,20 @@ for step in range(steps):
 
     optimizer.step()
 
+    # print training + validation loss
+
     if step % 100 == 0:
 
+        val_loss = validation_loss()
+
         print(
-            f"step {step} | loss {loss.item():.3f}"
+            f"step {step} | "
+            f"train loss {loss.item():.3f} | "
+            f"val loss {val_loss:.3f}"
         )
 
 
-# generate
+# generation
 
 @torch.no_grad()
 def generate(
@@ -224,4 +280,3 @@ print(
         temperature=0.8
     )
 )
-

@@ -41,10 +41,4 @@ tokenizer.save("tokenizer.json")
 
 print("Tokenizer saved!")
 
-# Test it
-text = "Once upon a time there was a little duck."
-encoded = tokenizer.encode(text)
-print("Text:", text)
-print("Tokens:", encoded.tokens)
-print("IDs:", encoded.ids)
-print("Decoded:", tokenizer.decode(encoded.ids))
+
